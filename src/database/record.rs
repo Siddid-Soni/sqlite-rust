@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use crate::varint::read_varint;
+use super::varint::read_varint;
 
 #[derive(Debug, Clone)]
 pub enum RecordValue {

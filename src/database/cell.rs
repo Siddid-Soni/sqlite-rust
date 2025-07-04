@@ -1,6 +1,6 @@
 use anyhow::Result;
-use crate::varint::read_varint;
-use crate::record::Record;
+use super::varint::read_varint;
+use super::record::Record;
 
 #[derive(Debug)]
 pub struct Cell {

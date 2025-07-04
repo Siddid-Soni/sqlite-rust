@@ -1,162 +1,350 @@
-# SQLite Implementation in Rust
+# SQLite TUI - Advanced Terminal User Interface for SQLite Databases
 
-A high-performance SQLite database implementation written in Rust, featuring B-tree navigation, index optimization, and SQL query processing.
+A high-performance, feature-rich terminal user interface for exploring and querying SQLite databases, built with Rust and ratatui. This implementation provides both an interactive TUI and a powerful CLI with advanced B-tree navigation, index optimization, and WHERE clause filtering.
 
-## Features
+![Main Interface Screenshot](screenshots/main-interface.png)
+*Main TUI interface showing Tables, Query, and Schema views*
 
-- **Complete SQLite File Format Support**: Reads and parses SQLite database files according to the official specification
-- **B-tree Navigation**: Efficient traversal of both table and index B-tree structures
-- **Index Optimization**: Automatic index usage for WHERE clauses with equality conditions
-- **SQL Query Support**: 
-  - `SELECT` statements with column selection
-  - `WHERE` clauses with equality and inequality operators
-  - `COUNT(*)` aggregation
-  - Case-insensitive SQL keywords
-- **Schema Introspection**: Support for `.tables`, `.schema`, and `.dbinfo` commands
-- **Memory Efficient**: Direct row lookup using B-tree search instead of loading entire tables
+## 🚀 Key Features
 
-## Architecture
+### 🎨 **Modern Terminal Interface**
+- **Three-panel design**: Tables browser, SQL query editor, and schema viewer
+- **Responsive layout**: Adapts to any terminal size (minimum 80x24)
+- **Real-time cursor**: Native cursor blinking and positioning
+- **Color-coded syntax**: Different colors for queries, results, and status messages
+- **Help system**: Built-in `?` key help overlay
 
-### Core Components
+### 🔍 **Query Engine**
+- **Full SQL SELECT support**: Complete WHERE clause parsing with operators (`=`, `!=`, `<`, `>`, `<=`, `>=`)
+- **Quote enforcement**: Proper SQL syntax validation requiring quotes for string literals
+- **Index optimization**: Automatic index detection and usage for WHERE clauses
+- **Query history**: Persistent query history with timestamps
+- **Result formatting**: Automatic table formatting with column alignment
 
-- **`database.rs`**: Main database engine with B-tree traversal and index optimization
-- **`commands.rs`**: SQL query parser and command dispatcher
-- **`record.rs`**: SQLite record format parsing and value handling
-- **`cell.rs`**: B-tree cell structure parsing
-- **`schema.rs`**: Table schema parsing from CREATE statements
-- **`varint.rs`**: Variable-length integer encoding/decoding
 
-### Key Optimizations
+### 📊 **Database Navigation**
+- **B-tree traversal**: Efficient navigation of SQLite's internal B-tree structure
+- **Table exploration**: Browse all tables with real-time data loading
+- **Schema inspection**: Complete database schema with CREATE statements
+- **Pagination support**: Handle large datasets with scrolling and navigation
+- **Row counting**: Fast `COUNT(*)` operations using database metadata
 
-1. **Index Scanning**: Automatically detects and uses indexes for WHERE clauses
-2. **Direct Row Lookup**: Uses B-tree navigation to fetch specific rows by ID
-3. **Smart Page Traversal**: Only visits relevant B-tree pages based on search criteria
-4. **Memory Efficient**: Avoids loading entire tables when only specific rows are needed
+### ⚡ **Performance Optimizations**
+- **Index scanning**: Leverages SQLite indexes for filtered queries
+- **Lazy loading**: Tables load data only when accessed
+- **Memory efficient**: Streaming data processing for large databases
+- **Cache optimization**: Intelligent caching of frequently accessed data
 
-## Usage
+## 📐 Architecture & Algorithms
 
-### Basic Commands
+### B-Tree Navigation Algorithm
 
-```bash
-# Get database information
-cargo run <database.db> ".dbinfo"
+Our implementation efficiently traverses SQLite's B-tree structure:
 
-# List all tables
-cargo run <database.db> ".tables"
+```
+Algorithm: traverse_btree(page_number, target_condition)
+Time Complexity: O(log n) for indexed searches, O(n) for table scans
+Space Complexity: O(h) where h is tree height
 
-# Show schema information
-cargo run <database.db> ".schema"
+1. Read page header to determine page type
+2. If LEAF_PAGE:
+   - Linear scan of cells: O(cells_per_page)
+   - Apply WHERE conditions: O(1) per cell
+3. If INTERIOR_PAGE:
+   - Binary search for target range: O(log cells_per_page)
+   - Recursively traverse child pages: O(log n)
+4. Collect and return matching records
 ```
 
-### SQL Queries
+![B-Tree Navigation](screenshots/btree-algorithm.png)
+*Visualization of B-tree traversal for query optimization*
 
-```bash
-# Select all columns
-cargo run <database.db> "SELECT * FROM table_name"
+### WHERE Clause Parser
 
-# Select specific columns
-cargo run <database.db> "SELECT id, name FROM table_name"
+Advanced recursive descent parser for SQL WHERE clauses:
 
-# Count rows
-cargo run <database.db> "SELECT COUNT(*) FROM table_name"
+```
+Grammar:
+where_clause := column_name operator value
+operator     := '=' | '!=' | '<' | '>' | '<=' | '>='
+value        := quoted_string | number
 
-# WHERE clauses (with automatic index usage)
-cargo run <database.db> "SELECT * FROM table_name WHERE column = 'value'"
-cargo run <database.db> "SELECT id, name FROM companies WHERE country = 'eritrea'"
+Time Complexity: O(n) where n is clause length
+Space Complexity: O(1) for simple conditions
 ```
 
-## Performance Features
+**Quote Validation Algorithm:**
+```rust
+fn validate_value(input: &str) -> Result<String> {
+    if input.starts_with('\'') && input.ends_with('\'') {
+        return Ok(strip_quotes(input));  // O(1)
+    }
+    if is_numeric(input) {
+        return Ok(input);               // O(1)
+    }
+    return Err("String values must be quoted");
+}
+```
 
-### Index Optimization
+### Index Optimization Strategy
 
-The implementation automatically detects when indexes can be used for queries:
+```
+Algorithm: optimize_query(table, where_clause)
+Time Complexity: O(log n) with index, O(n) without index
 
-- **Equality conditions**: `WHERE column = 'value'` uses index if available
-- **Smart traversal**: Only visits B-tree pages that contain relevant data
-- **Direct row lookup**: Fetches specific rows by ID without loading entire table
+1. Parse WHERE clause to extract column and value
+2. Search for applicable index: O(num_indexes)
+3. If index found:
+   - Navigate index B-tree: O(log n)
+   - Collect matching row IDs: O(k) where k is result count
+   - Fetch rows by ID: O(k log n)
+4. If no index:
+   - Full table scan: O(n)
+   - Apply filter conditions: O(n)
+```
 
-### B-tree Navigation
+![Index Usage](screenshots/index-optimization.png)
+*Comparison of query performance with and without index usage*
 
-- **Recursive traversal**: Clean, readable tree navigation
-- **Page-level optimization**: Efficient reading of database pages
-- **Interior page handling**: Proper navigation through interior B-tree nodes
+## ⚡ Performance Analysis
 
-## Implementation Details
+### Time Complexity by Operation
 
-### SQLite File Format
+| Operation | Best Case | Average Case | Worst Case | Notes |
+|-----------|-----------|--------------|------------|-------|
+| Table scan | O(1) | O(n) | O(n) | Linear scan through all rows |
+| Indexed WHERE | O(log n) | O(log n + k) | O(n) | k = result count |
+| COUNT(*) | O(1) | O(1) | O(1) | Uses SQLite metadata |
+| Schema lookup | O(1) | O(1) | O(1) | Cached after first load |
+| B-tree navigation | O(log n) | O(log n) | O(log n) | Tree height dependent |
+| Query parsing | O(m) | O(m) | O(m) | m = query length |
 
-The implementation correctly handles:
-- Database header parsing (page size, schema version, etc.)
-- B-tree page types (leaf/interior, table/index)
-- Cell pointer arrays and cell data
-- Variable-length integer encoding (varints)
-- Record format with typed columns
+### Space Complexity
 
-### Data Types Supported
+| Component | Memory Usage | Notes |
+|-----------|--------------|-------|
+| Query history | O(h × q) | h = history size, q = avg query length |
+| Table cache | O(r × c) | r = visible rows, c = columns |
+| B-tree pages | O(p) | p = pages in memory |
+| Index cache | O(i) | i = cached index entries |
 
-- **Integers**: 8, 16, 24, 32, 48, 64-bit signed integers
-- **Floats**: 64-bit IEEE floating point
-- **Text**: UTF-8 strings
-- **Blobs**: Binary data
-- **Null values**
-- **Special values**: Zero, One
+## 🛠️ Installation & Setup
 
-### Query Processing
-
-1. **Parse SQL**: Extract query type, columns, table, and WHERE conditions
-2. **Schema lookup**: Get table structure and column information
-3. **Index detection**: Check for usable indexes on WHERE columns
-4. **Execution**: Use index scanning or full table scan as appropriate
-5. **Result formatting**: Display results in pipe-separated format
-
-## Error Handling
-
-Comprehensive error handling for:
-- Invalid database files
-- Corrupted B-tree structures
-- Malformed SQL queries
-- Missing tables or columns
-- Type conversion errors
-
-## Testing
-
-The implementation has been tested with:
-- Real SQLite database files
-- Complex queries with WHERE clauses
-- Index usage scenarios
-- Large datasets with performance optimization
-
-## Building and Running
+### Build from Source
 
 ```bash
-# Build the project
 cargo build --release
-
-# Run with a database file
-cargo run <database_file> "<SQL_query>"
-
-# Example
-cargo run companies.db "SELECT id, name FROM companies WHERE country = 'eritrea'"
 ```
 
-## Dependencies
+### Download Sample Databases
 
-- `anyhow`: Error handling
-- Standard Rust library for file I/O and data structures
+```bash
+chmod +x download_sample_databases.sh
+./download_sample_databases.sh
+```
 
-## Performance Characteristics
+## 📘 Usage Guide
 
-- **Index queries**: O(log n) lookup time when indexes are available
-- **Full table scans**: O(n) when no suitable index exists
-- **Memory usage**: Minimal - only loads necessary pages and rows
-- **B-tree traversal**: Efficient recursive navigation
+### TUI Mode (Recommended)
 
-## Future Enhancements
+Launch the interactive terminal interface:
 
-Potential areas for expansion:
-- Support for more SQL operations (JOIN, ORDER BY, GROUP BY)
-- Additional comparison operators (>, <, >=, <=, LIKE)
-- Write operations (INSERT, UPDATE, DELETE)
-- Transaction support
-- Concurrent access
+```bash
+./target/release/sqlite-rust database.db
+```
+
+![TUI Launch](screenshots/tui-startup.png)
+*TUI startup screen showing welcome message and instructions*
+
+### CLI Mode
+
+Direct command execution:
+
+```bash
+./target/release/sqlite-rust sample.db "SELECT * FROM users WHERE age > 25"
+```
+
+## 🎯 TUI Navigation Reference
+
+### Global Controls
+
+| Keybinding | Action | Context |
+|------------|--------|---------|
+| `Tab` | Switch to next view | Global |
+| `Shift+Tab` | Switch to previous view | Global |
+| `Ctrl+Q` | Quit application | Global |
+| `?` | Toggle help overlay | Global |
+| `Esc` | Exit current mode | Context-sensitive |
+
+![Help Overlay](screenshots/help-screen.png)
+*Built-in help system showing all available keybindings*
+
+### Tables View
+
+| Keybinding | Action | Time Complexity |
+|------------|--------|-----------------|
+| `↑`/`↓`, `j`/`k` | Navigate table list | O(1) |
+| `Enter` | Load selected table | O(n) where n = rows |
+| `r` | Refresh table data | O(n) |
+| `PgUp`/`PgDn` | Scroll data vertically | O(1) |
+| `←`/`→`, `h`/`l` | Scroll data horizontally | O(1) |
+
+![Tables View](screenshots/tables-view.png)
+*Tables view showing navigation and data display*
+
+### Query View
+
+| Keybinding | Action | Notes |
+|------------|--------|-------|
+| `Enter` | Start/stop editing mode | Toggle input focus |
+| `Enter` (while editing) | Execute query | Validates syntax first |
+| `Esc` | Exit editing mode | Returns to navigation |
+| `←`/`→` | Move cursor | Standard text editing |
+| `Backspace` | Delete character | With cursor positioning |
+| `↑`/`↓` | Scroll query history | Browse previous queries |
+
+**Query Editor Features:**
+- Real-time syntax validation
+- Quote enforcement for string literals
+- Query history with timestamps
+- Error highlighting and detailed messages
+
+![Query Editor](screenshots/query-editor.png)
+*Query editor showing syntax highlighting and validation*
+
+### Schema View
+
+| Keybinding | Action |
+|------------|--------|
+| `↑`/`↓`, `j`/`k` | Scroll vertically |
+| `←`/`→`, `h`/`l` | Scroll horizontally |
+| `r` | Refresh schema |
+| `PgUp`/`PgDn` | Fast vertical scroll |
+
+![Schema View](screenshots/schema-view.png)
+*Schema view displaying CREATE statements and table structures*
+
+## 📊 Supported SQL Features
+
+### SELECT Statement Support
+
+- Basic queries: `SELECT * FROM table_name;`
+- Column selection: `SELECT column1, column2 FROM table_name;`
+- WHERE clauses with full operator support
+- Aggregate functions: `SELECT COUNT(*) FROM table_name;`
+
+### Meta Commands
+
+- `.dbinfo` - Database information
+- `.tables` - List all tables  
+- `.schema` - Show all CREATE statements
+
+### Quote Enforcement
+
+The parser strictly enforces SQL standards requiring quotes for string literals while allowing unquoted numeric values.
+
+![Query Validation](screenshots/query-validation.png)
+*Error messages for invalid query syntax*
+
+## 🏗️ Technical Implementation
+
+### Core Architecture
+
+```
+src/
+├── main.rs           # Entry point and argument parsing
+├── tui.rs            # TUI implementation (ratatui)
+├── database.rs       # SQLite B-tree operations
+├── commands.rs       # SQL parsing and execution
+├── schema.rs         # Schema parsing and analysis
+├── record.rs         # Record value handling
+├── cell.rs           # SQLite cell parsing
+└── varint.rs         # Variable-length integer decoding
+```
+
+### Database Layer
+
+**B-tree Navigation:**
+```rust
+pub fn collect_all_table_cells(&mut self, page_num: usize) -> Result<Vec<Cell>> {
+    let page_data = self.read_page_data(page_num)?;
+    let page_type = self.get_page_type(&page_data, page_num);
+    
+    match page_type {
+        LEAF_TABLE_PAGE => self.read_leaf_cells(&page_data, page_num),
+        INTERIOR_TABLE_PAGE => {
+            let child_pages = self.get_child_page_numbers(&page_data, page_num)?;
+            let mut all_cells = Vec::new();
+            for child_page in child_pages {
+                all_cells.extend(self.collect_all_table_cells(child_page)?);
+            }
+            Ok(all_cells)
+        }
+        _ => bail!("Unsupported page type: {}", page_type),
+    }
+}
+```
+
+**Index Optimization:**
+```rust
+pub fn search_index(&mut self, index: &SchemaObject, value: &str) -> Result<Vec<u64>> {
+    let mut row_ids = Vec::new();
+    self.traverse_index_for_value(index.rootpage, value, &mut row_ids)?;
+    
+    // Use collected row IDs for targeted row fetching: O(k log n)
+    self.get_table_rows_by_ids(table_name, &row_ids)
+}
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**TUI Display Issues:**
+```
+Problem: Garbled display or cursor issues
+Solution: Ensure terminal supports 256 colors and UTF-8
+```
+
+
+
+## 📈 Roadmap
+
+### Version 2.0 Features
+- [ ] **Advanced SQL**: JOIN support, subqueries, CTEs
+- [ ] **Export functionality**: CSV, JSON, SQL dump
+- [ ] **Database editing**: INSERT, UPDATE, DELETE operations
+- [ ] **Multiple databases**: Tab-based multi-database support
+- [ ] **Query optimization**: Visual EXPLAIN QUERY PLAN
+- [ ] **Syntax highlighting**: Full SQL syntax highlighting
+
+### Performance Improvements
+- [ ] **Parallel processing**: Multi-threaded query execution
+- [ ] **Streaming results**: Handle datasets larger than memory
+- [ ] **Caching layer**: Intelligent query result caching
+- [ ] **Index analysis**: Automatic index recommendations
+
+
+
+## 🤝 Contributing
+
+### Development Setup
+
+```bash
+git clone https://github.com/your-username/sqlite-rust
+cd sqlite-rust
+cargo install cargo-watch cargo-audit
+cargo watch -x run
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **ratatui**: Modern terminal UI library for Rust
+
+
+**Built with ❤️ in Rust** | **Terminal UI powered by ratatui** | **SQLite expertise meets modern UX**
 

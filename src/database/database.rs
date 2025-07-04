@@ -3,9 +3,9 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use crate::{DB_HEADER_SIZE, BTREE_HEADER_SIZE};
-use crate::cell::Cell;
-use crate::schema::{TableSchema, ColumnInfo};
-use crate::record::RecordValue;
+use super::cell::Cell;
+use super::schema::{TableSchema, ColumnInfo};
+use super::record::RecordValue;
 
 // B-tree page types
 const INTERIOR_INDEX_PAGE: u8 = 2;
@@ -29,7 +29,7 @@ pub struct SchemaObject {
 }
 
 impl SchemaObject {
-    pub fn from_record(record: &crate::record::Record) -> Option<Self> {
+    pub fn from_record(record: &super::record::Record) -> Option<Self> {
         // Schema records have: type, name, tbl_name, rootpage, sql
         if record.body.len() >= 4 {
             let object_type = match record.body.get(0) {
@@ -197,8 +197,8 @@ impl Database {
     pub fn count_table_rows(&mut self, table_name: &str) -> Result<usize> {
         let table_info = self.find_table_info(table_name)?;
         let page_num = table_info.record.get_page_number()?;
-        let rows = self.read_page(page_num)?;
-        Ok(rows.len())
+        let all_cells = self.collect_all_table_cells(page_num)?;
+        Ok(all_cells.len())
     }
 
     pub fn get_table_names(&mut self) -> Result<Vec<String>> {
@@ -359,7 +359,7 @@ impl Database {
     fn read_index_cell(&self, page_data: &[u8], offset: usize) -> Result<IndexCell> {
         let mut pos = offset;
         
-        let (payload_size, bytes_read) = crate::varint::read_varint(page_data, pos)?;
+        let (payload_size, bytes_read) = super::varint::read_varint(page_data, pos)?;
         pos += bytes_read;
         
         let payload_end = pos + payload_size as usize;
@@ -368,7 +368,7 @@ impl Database {
         }
         
         let payload_data = &page_data[pos..payload_end];
-        let record = crate::record::Record::from_bytes(payload_data)?;
+        let record = super::record::Record::from_bytes(payload_data)?;
         
         if record.body.len() < 2 {
             bail!("Index cell has fewer than 2 fields: {}", record.body.len());

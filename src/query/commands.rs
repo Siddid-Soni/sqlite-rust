@@ -22,6 +22,29 @@ impl WhereCondition {
     pub fn parse(where_clause: &str) -> Result<Self> {
         let where_clause = where_clause.trim();
         
+        // Handle inequality operators first (longer patterns first to avoid conflicts)
+        if let Some(pos) = where_clause.find(" != ") {
+            let column_name = where_clause[..pos].trim().to_string();
+            let value = where_clause[pos + 4..].trim();
+            let value = Self::parse_value(value)?;
+            return Ok(WhereCondition {
+                column_name,
+                operator: ComparisonOperator::NotEqual,
+                value,
+            });
+        } else if let Some(pos) = where_clause.find("!=") {
+            // Handle cases without spaces around !=
+            let column_name = where_clause[..pos].trim().to_string();
+            let value = where_clause[pos + 2..].trim();
+            let value = Self::parse_value(value)?;
+            return Ok(WhereCondition {
+                column_name,
+                operator: ComparisonOperator::NotEqual,
+                value,
+            });
+        }
+        
+        // Handle equality operators (after inequality to avoid conflicts)
         if let Some(pos) = where_clause.find(" = ") {
             let column_name = where_clause[..pos].trim().to_string();
             let value = where_clause[pos + 3..].trim();
@@ -31,15 +54,14 @@ impl WhereCondition {
                 operator: ComparisonOperator::Equal,
                 value,
             });
-        }
-        
-        if let Some(pos) = where_clause.find(" != ") {
+        } else if let Some(pos) = where_clause.find('=') {
+            // Handle cases without spaces around =
             let column_name = where_clause[..pos].trim().to_string();
-            let value = where_clause[pos + 4..].trim();
+            let value = where_clause[pos + 1..].trim();
             let value = Self::parse_value(value)?;
             return Ok(WhereCondition {
                 column_name,
-                operator: ComparisonOperator::NotEqual,
+                operator: ComparisonOperator::Equal,
                 value,
             });
         }
@@ -50,14 +72,20 @@ impl WhereCondition {
     fn parse_value(value: &str) -> Result<String> {
         let value = value.trim();
         if value.starts_with('\'') && value.ends_with('\'') {
-            // Remove quotes for string values
+            // Remove single quotes for string values
             Ok(value[1..value.len()-1].to_string())
         } else if value.starts_with('"') && value.ends_with('"') {
             // Remove double quotes for string values
             Ok(value[1..value.len()-1].to_string())
         } else {
-            // Numeric or unquoted value
-            Ok(value.to_string())
+            // Check if it's a valid number (integer or float)
+            if value.parse::<i64>().is_ok() || value.parse::<f64>().is_ok() {
+                // Allow unquoted numeric values
+                Ok(value.to_string())
+            } else {
+                // Reject unquoted string values
+                bail!("String values must be quoted. Use 'value' or \"value\" instead of {}", value)
+            }
         }
     }
     
