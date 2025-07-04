@@ -2,7 +2,7 @@
 
 A high-performance, feature-rich terminal user interface for exploring and querying SQLite databases, built with Rust and ratatui. This implementation provides both an interactive TUI and a powerful CLI with advanced B-tree navigation, index optimization, and WHERE clause filtering.
 
-![Main Interface Screenshot](screenshots/main-interface.png)
+![Main Interface Screenshot](assets/main.png)
 *Main TUI interface showing Tables, Query, and Schema views*
 
 ## 🚀 Key Features
@@ -56,8 +56,6 @@ Space Complexity: O(h) where h is tree height
 4. Collect and return matching records
 ```
 
-![B-Tree Navigation](screenshots/btree-algorithm.png)
-*Visualization of B-tree traversal for query optimization*
 
 ### WHERE Clause Parser
 
@@ -102,9 +100,6 @@ Time Complexity: O(log n) with index, O(n) without index
    - Full table scan: O(n)
    - Apply filter conditions: O(n)
 ```
-
-![Index Usage](screenshots/index-optimization.png)
-*Comparison of query performance with and without index usage*
 
 ## ⚡ Performance Analysis
 
@@ -153,9 +148,6 @@ Launch the interactive terminal interface:
 ./target/release/sqlite-rust database.db
 ```
 
-![TUI Launch](screenshots/tui-startup.png)
-*TUI startup screen showing welcome message and instructions*
-
 ### CLI Mode
 
 Direct command execution:
@@ -176,7 +168,7 @@ Direct command execution:
 | `?` | Toggle help overlay | Global |
 | `Esc` | Exit current mode | Context-sensitive |
 
-![Help Overlay](screenshots/help-screen.png)
+![Help Overlay](assets/help.png)
 *Built-in help system showing all available keybindings*
 
 ### Tables View
@@ -189,7 +181,7 @@ Direct command execution:
 | `PgUp`/`PgDn` | Scroll data vertically | O(1) |
 | `←`/`→`, `h`/`l` | Scroll data horizontally | O(1) |
 
-![Tables View](screenshots/tables-view.png)
+![Tables View](assets/main.png)
 *Tables view showing navigation and data display*
 
 ### Query View
@@ -209,7 +201,7 @@ Direct command execution:
 - Query history with timestamps
 - Error highlighting and detailed messages
 
-![Query Editor](screenshots/query-editor.png)
+![Query Editor](assets/query.png)
 *Query editor showing syntax highlighting and validation*
 
 ### Schema View
@@ -221,7 +213,7 @@ Direct command execution:
 | `r` | Refresh schema |
 | `PgUp`/`PgDn` | Fast vertical scroll |
 
-![Schema View](screenshots/schema-view.png)
+![Schema View](assets/schema.png)
 *Schema view displaying CREATE statements and table structures*
 
 ## 📊 Supported SQL Features
@@ -238,13 +230,6 @@ Direct command execution:
 - `.dbinfo` - Database information
 - `.tables` - List all tables  
 - `.schema` - Show all CREATE statements
-
-### Quote Enforcement
-
-The parser strictly enforces SQL standards requiring quotes for string literals while allowing unquoted numeric values.
-
-![Query Validation](screenshots/query-validation.png)
-*Error messages for invalid query syntax*
 
 ## 🏗️ Technical Implementation
 
@@ -336,10 +321,6 @@ cd sqlite-rust
 cargo install cargo-watch cargo-audit
 cargo watch -x run
 ```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
