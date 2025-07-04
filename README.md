@@ -1,39 +1,46 @@
-# SQLite TUI - Advanced Terminal User Interface for SQLite Databases
+# SQLite Database Engine - High-Performance Rust Implementation
 
-A high-performance, feature-rich terminal user interface for exploring and querying SQLite databases, built with Rust and ratatui. This implementation provides both an interactive TUI and a powerful CLI with advanced B-tree navigation, index optimization, and WHERE clause filtering.
+A complete SQLite database engine implementation built from scratch in Rust. Features native B-tree navigation, advanced index optimization, comprehensive WHERE clause parsing, and zero-dependency database file handling. Includes both a high-performance CLI for direct database operations and an optional interactive terminal user interface for visual exploration.
 
 ![Main Interface Screenshot](assets/main.png)
-*Main TUI interface showing Tables, Query, and Schema views*
+*Interactive TUI showcasing the SQLite engine's capabilities: B-tree navigation, schema analysis, and query execution*
 
 ## 🚀 Key Features
 
-### 🎨 **Modern Terminal Interface**
+### 🔧 **SQLite Database Engine**
+- **Native B-tree implementation**: Direct parsing and navigation of SQLite's internal B-tree structure
+- **Complete file format support**: Handles SQLite database files without external dependencies
+- **Advanced page management**: Efficient reading and caching of database pages
+- **Index optimization**: Automatic detection and utilization of database indexes
+- **Schema parsing**: Complete parsing of SQLite schema objects and CREATE statements
+
+### 🔍 **SQL Query Engine**
+- **Full SQL SELECT support**: Complete WHERE clause parsing with operators (`=`, `!=`, `<`, `>`, `<=`, `>=`)
+- **Quote enforcement**: Proper SQL syntax validation requiring quotes for string literals
+- **Index-aware execution**: Automatically chooses optimal query execution paths
+- **Type system**: Comprehensive handling of SQLite data types (NULL, INTEGER, REAL, TEXT, BLOB)
+- **Record parsing**: Direct parsing of SQLite record formats and variable-length integers
+
+### 📊 **Database Navigation & Analysis**
+- **B-tree traversal**: Efficient navigation of leaf and interior pages
+- **Table exploration**: Direct access to table data without SQL overhead
+- **Schema inspection**: Complete database schema with metadata analysis
+- **Row counting**: Fast `COUNT(*)` operations using database metadata
+- **Cell-level parsing**: Low-level access to SQLite cell structures
+
+### ⚡ **Performance Optimizations**
+- **Zero-copy parsing**: Efficient memory usage with minimal data copying
+- **Index scanning**: Leverages SQLite indexes for O(log n) filtered queries
+- **Lazy loading**: Tables and pages load data only when accessed
+- **Memory efficient**: Streaming data processing for large databases
+- **Cache optimization**: Intelligent caching of frequently accessed pages
+
+### 🎨 **Terminal User Interface** (Optional)
 - **Three-panel design**: Tables browser, SQL query editor, and schema viewer
 - **Responsive layout**: Adapts to any terminal size (minimum 80x24)
 - **Real-time cursor**: Native cursor blinking and positioning
-- **Color-coded syntax**: Different colors for queries, results, and status messages
-- **Help system**: Built-in `?` key help overlay
-
-### 🔍 **Query Engine**
-- **Full SQL SELECT support**: Complete WHERE clause parsing with operators (`=`, `!=`, `<`, `>`, `<=`, `>=`)
-- **Quote enforcement**: Proper SQL syntax validation requiring quotes for string literals
-- **Index optimization**: Automatic index detection and usage for WHERE clauses
 - **Query history**: Persistent query history with timestamps
-- **Result formatting**: Automatic table formatting with column alignment
-
-
-### 📊 **Database Navigation**
-- **B-tree traversal**: Efficient navigation of SQLite's internal B-tree structure
-- **Table exploration**: Browse all tables with real-time data loading
-- **Schema inspection**: Complete database schema with CREATE statements
-- **Pagination support**: Handle large datasets with scrolling and navigation
-- **Row counting**: Fast `COUNT(*)` operations using database metadata
-
-### ⚡ **Performance Optimizations**
-- **Index scanning**: Leverages SQLite indexes for filtered queries
-- **Lazy loading**: Tables load data only when accessed
-- **Memory efficient**: Streaming data processing for large databases
-- **Cache optimization**: Intelligent caching of frequently accessed data
+- **Help system**: Built-in `?` key help overlay
 
 ## 📐 Architecture & Algorithms
 
@@ -57,9 +64,9 @@ Space Complexity: O(h) where h is tree height
 ```
 
 
-### WHERE Clause Parser
+### WHERE Clause Engine
 
-Advanced recursive descent parser for SQL WHERE clauses:
+Advanced recursive descent engine for SQL WHERE clauses:
 
 ```
 Grammar:
@@ -140,20 +147,23 @@ chmod +x download_sample_databases.sh
 
 ## 📘 Usage Guide
 
-### TUI Mode (Recommended)
+### CLI Mode (Core Engine)
 
-Launch the interactive terminal interface:
-
-```bash
-./target/release/sqlite-rust database.db
-```
-
-### CLI Mode
-
-Direct command execution:
+Direct command execution using the SQLite engine:
 
 ```bash
 ./target/release/sqlite-rust sample.db "SELECT * FROM users WHERE age > 25"
+./target/release/sqlite-rust sample.db "SELECT COUNT(*) FROM companies"
+./target/release/sqlite-rust sample.db ".tables"
+./target/release/sqlite-rust sample.db ".schema users"
+```
+
+### TUI Mode (Interactive Interface)
+
+Launch the interactive terminal interface for visual database exploration:
+
+```bash
+./target/release/sqlite-rust database.db
 ```
 
 ## 🎯 TUI Navigation Reference
@@ -238,13 +248,13 @@ Direct command execution:
 ```
 src/
 ├── main.rs           # Entry point and argument parsing
-├── tui.rs            # TUI implementation (ratatui)
-├── database.rs       # SQLite B-tree operations
-├── commands.rs       # SQL parsing and execution
+├── database.rs       # SQLite B-tree operations & file format parsing
+├── commands.rs       # SQL parsing and execution engine
 ├── schema.rs         # Schema parsing and analysis
-├── record.rs         # Record value handling
-├── cell.rs           # SQLite cell parsing
-└── varint.rs         # Variable-length integer decoding
+├── record.rs         # Record value handling & type system
+├── cell.rs           # SQLite cell parsing & data extraction
+├── varint.rs         # Variable-length integer decoding
+└── tui.rs            # Optional TUI implementation (ratatui)
 ```
 
 ### Database Layer
@@ -327,5 +337,5 @@ cargo watch -x run
 - **ratatui**: Modern terminal UI library for Rust
 
 
-**Built with ❤️ in Rust** | **Terminal UI powered by ratatui** | **SQLite expertise meets modern UX**
+**Built with ❤️ in Rust** | **Native SQLite engine & B-tree implementation** | **Zero-dependency database engine with optional TUI**
 
