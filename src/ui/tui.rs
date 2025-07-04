@@ -1,6 +1,6 @@
 use anyhow::Result;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyModifiers},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -720,8 +720,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<()> 
         
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
-                if handle_key_event(app, key)? {
-                    return Ok(());
+                // Only handle key press events, ignore repeat and release events
+                // This fixes the double input issue on Windows
+                if key.kind == KeyEventKind::Press {
+                    if handle_key_event(app, key)? {
+                        return Ok(());
+                    }
                 }
             }
         }
